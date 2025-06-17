@@ -64,13 +64,13 @@
     <!-- SERVIDORES -->
     <div class="flex items-center space-x-2">
       <span class="text-gray-300 font-medium">Servers:</span>
-      <button id="server1" class="bg-blue-600 text-white px-3 py-1 rounded-md font-semibold active-server" onclick="cambiarServidorBoton('servidor-de-video.onrender.com', this)">
+      <button id="server1" class="bg-blue-600 text-white px-3 py-1 rounded-md font-semibold active-server" onclick="cambiarServidorBoton('https://servidor-de-video.onrender.com', this)">
         Server 1
       </button>
-      <button id="server2" class="bg-gray-700 text-white px-3 py-1 rounded-md hover:bg-blue-500" onclick="cambiarServidorBoton('servidor-de-video-2.onrender.com', this)">
+      <button id="server2" class="bg-gray-700 text-white px-3 py-1 rounded-md hover:bg-blue-500" onclick="cambiarServidorBoton('https://servidor-de-video.onrender.com', this)">
         Server 2
       </button>
-      <button id="server3" class="bg-gray-700 text-white px-3 py-1 rounded-md hover:bg-blue-500" onclick="cambiarServidorBoton('servidor-de-video-3.onrender.com', this)">
+      <button id="server3" class="bg-gray-700 text-white px-3 py-1 rounded-md hover:bg-blue-500" onclick="cambiarServidorBoton('https://servidor-de-video.onrender.com', this)">
         Server 3
       </button>
     </div>
@@ -221,7 +221,7 @@
 
     // Usar servidor guardado o por defecto
     if (!servidorActual) {
-      servidorActual = localStorage.getItem("servidorVideo") || "servidor-de-video.onrender.com";
+      servidorActual = localStorage.getItem("servidorVideo") || "https://servidor-de-video.onrender.com";
     }
 
     showLoading(true);
@@ -248,7 +248,7 @@
 
   // Inicializar funcionalidad del video
   function iniciarVideo() {
-    servidorActual = localStorage.getItem("servidorVideo") || "servidor-de-video.onrender.com";
+    servidorActual = localStorage.getItem("servidorVideo") || "https://servidor-de-video.onrender.com";
 
     // Evento cuando se cargan los metadatos del video
     video.addEventListener("loadedmetadata", () => {
