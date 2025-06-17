@@ -12,6 +12,9 @@
       background-color: #2563eb !important;
       color: white !important;
     }
+    .loading {
+      opacity: 0.7;
+    }
   </style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen flex flex-col">
@@ -33,17 +36,21 @@
 <!-- HEADER -->
 <header class="flex items-center justify-between bg-gray-800 p-4 border-b border-gray-700">
   <div class="flex items-center space-x-2 text-xl font-bold text-white">
-    <svg class="w-6 h-6 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/></svg>
+    <svg class="w-6 h-6 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M4 4h16v16H4z"/>
+    </svg>
     <span>MovieStream</span>
   </div>
-  <button onclick="logout()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg transition">Logout</button>
+  <button onclick="logout()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg transition">
+    Logout
+  </button>
 </header>
 
 <!-- MAIN -->
 <main class="flex-grow max-w-7xl mx-auto flex flex-col md:flex-row gap-8 px-6 py-8">
 
   <section class="flex-1 flex flex-col space-y-6">
-    <!-- VIDEO -->
+    <!-- VIDEO PLAYER -->
     <div class="relative rounded-lg overflow-hidden bg-black border border-gray-700 shadow-lg">
       <video id="videoPlayer" class="w-full rounded-lg" controls preload="metadata" playsinline></video>
       <div id="loadingOverlay" class="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
@@ -57,24 +64,43 @@
     <!-- SERVIDORES -->
     <div class="flex items-center space-x-2">
       <span class="text-gray-300 font-medium">Servers:</span>
-      <button id="server1" class="bg-blue-600 text-white px-3 py-1 rounded-md font-semibold active-server" onclick="cambiarServidorBoton('servidor-de-video.onrender.com', this)">Server 1</button>
-      <button id="server2" class="bg-gray-700 text-white px-3 py-1 rounded-md hover:bg-blue-500" onclick="cambiarServidorBoton('servidor-de-video.onrender.com', this)">Server 2</button>
-      <button id="server3" class="bg-gray-700 text-white px-3 py-1 rounded-md hover:bg-blue-500" onclick="cambiarServidorBoton('servidor-de-video.onrender.com', this)">Server 3</button>
+      <button id="server1" class="bg-blue-600 text-white px-3 py-1 rounded-md font-semibold active-server" onclick="cambiarServidorBoton('servidor-de-video.onrender.com', this)">
+        Server 1
+      </button>
+      <button id="server2" class="bg-gray-700 text-white px-3 py-1 rounded-md hover:bg-blue-500" onclick="cambiarServidorBoton('servidor-de-video-2.onrender.com', this)">
+        Server 2
+      </button>
+      <button id="server3" class="bg-gray-700 text-white px-3 py-1 rounded-md hover:bg-blue-500" onclick="cambiarServidorBoton('servidor-de-video-3.onrender.com', this)">
+        Server 3
+      </button>
     </div>
 
-    <!-- INFO -->
+    <!-- INFORMACIÓN DE LA PELÍCULA -->
     <div class="space-y-2 max-w-xl">
-      <h2 id="tituloPeli" class="text-4xl font-extrabold tracking-wide"></h2>
-      <p id="descripcionPeli" class="text-gray-300 text-lg leading-relaxed"></p>
-      <p id="duracionPeli" class="italic text-blue-300 font-semibold"></p>
+      <h2 id="tituloPeli" class="text-4xl font-extrabold tracking-wide text-white">Selecciona una película</h2>
+      <p id="descripcionPeli" class="text-gray-300 text-lg leading-relaxed">Descripción de la película aparecerá aquí</p>
+      <p id="duracionPeli" class="italic text-blue-300 font-semibold">Duración: --</p>
     </div>
   </section>
 
-  <aside class="md:w-80 flex flex-col space-y-4 overflow-y-auto pr-2" style="max-height: calc(100vh - 150px);" id="pelisList"></aside>
+  <!-- SIDEBAR CON LISTA DE PELÍCULAS -->
+  <aside class="md:w-80 flex flex-col space-y-4 overflow-y-auto pr-2" style="max-height: calc(100vh - 150px);">
+    <h3 class="text-xl font-bold text-white mb-4">Películas Disponibles</h3>
+    <div id="pelisList">
+      <!-- Las películas se cargarán aquí dinámicamente -->
+      <div class="flex items-center justify-center p-8">
+        <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+        </svg>
+        <span class="ml-2 text-gray-300">Cargando películas...</span>
+      </div>
+    </div>
+  </aside>
 
 </main>
 
-<!-- JS -->
+<!-- JAVASCRIPT -->
 <script>
   // Helper para fetch con token y manejo automático de expiración
   function fetchConToken(url, options = {}) {
@@ -96,6 +122,7 @@
     });
   }
 
+  // Variables globales
   const video = document.getElementById('videoPlayer');
   const loadingOverlay = document.getElementById('loadingOverlay');
   const pelisList = document.getElementById('pelisList');
@@ -104,16 +131,17 @@
   let tiempoGuardado = 0;
   let playAfterSeek = false;
 
+  // Función para mostrar/ocultar loading
   function showLoading(show) {
     loadingOverlay.style.opacity = show ? '1' : '0';
     loadingOverlay.style.pointerEvents = show ? 'auto' : 'none';
     video.classList.toggle('loading', show);
   }
 
+  // Cargar lista de películas
   async function cargarPeliculas() {
     showLoading(true);
     try {
-      // URL actualizada para producción
       const res = await fetchConToken('https://nefly-bd-pelis.onrender.com/pelis/listar');
       const pelis = await res.json();
 
@@ -123,8 +151,7 @@
         const card = document.createElement('div');
         card.className = "bg-gray-800 rounded-lg overflow-hidden shadow hover:ring-2 hover:ring-blue-500 cursor-pointer transition";
         
-        // Usar 'miniatura' en lugar de 'image'
-        const imgSrc = peli.miniatura || 'https://via.placeholder.com/224x126.png?text=Sin+Imagen';
+        const imgSrc = peli.miniatura || 'https://placehold.co/224x126?text=Sin+Imagen';
 
         card.innerHTML = `
           <img src="${imgSrc}" alt="${peli.titulo}" class="w-full h-40 object-cover">
@@ -140,32 +167,39 @@
         pelisList.appendChild(card);
       });
 
+      // Cargar la película guardada o la primera disponible
       const peliGuardada = localStorage.getItem('nombrePeli');
       const peliParaCargar = pelis.find(p => p.titulo === peliGuardada) || pelis[0];
-      cargarVideo(peliParaCargar);
+      if (peliParaCargar) {
+        cargarVideo(peliParaCargar);
+      }
     } catch (error) {
-      pelisList.innerHTML = `<p class="text-red-500 text-center p-6">Error cargando películas :(</p>`;
-      console.error(error);
+      pelisList.innerHTML = `<p class="text-red-500 text-center p-6">Error cargando películas: ${error.message}</p>`;
+      console.error('Error al cargar películas:', error);
     } finally {
       showLoading(false);
     }
   }
 
+  // Cambiar servidor
   function cambiarServidorBoton(ip, boton) {
     servidorActual = ip;
     localStorage.setItem("servidorVideo", ip);
 
-    if (peliActual) {
+    // Guardar tiempo actual del video
+    if (peliActual && video.currentTime) {
       localStorage.setItem("tiempoVideo_" + peliActual.titulo, video.currentTime);
     }
 
-    tiempoGuardado = video.currentTime;
+    tiempoGuardado = video.currentTime || 0;
     playAfterSeek = true;
 
+    // Recargar el video con el nuevo servidor
     if (peliActual) {
       cargarVideo(peliActual);
     }
 
+    // Actualizar interfaz de botones
     document.querySelectorAll('[id^="server"]').forEach(btn => {
       btn.classList.remove('active-server', 'bg-blue-600');
       btn.classList.add('bg-gray-700');
@@ -174,15 +208,18 @@
     boton.classList.remove('bg-gray-700');
   }
 
+  // Cargar video
   async function cargarVideo(peli) {
     peliActual = peli;
     document.getElementById('tituloPeli').textContent = peli.titulo;
-    document.getElementById('descripcionPeli').textContent = peli.descripcion;
-    document.getElementById('duracionPeli').textContent = `Duración: ${peli.duracion}`;
+    document.getElementById('descripcionPeli').textContent = peli.descripcion || 'Sin descripción disponible';
+    document.getElementById('duracionPeli').textContent = `Duración: ${peli.duracion || 'No especificada'}`;
     localStorage.setItem('nombrePeli', peli.titulo);
 
+    // Obtener tiempo guardado
     tiempoGuardado = parseFloat(localStorage.getItem("tiempoVideo_" + peli.titulo)) || 0;
 
+    // Usar servidor guardado o por defecto
     if (!servidorActual) {
       servidorActual = localStorage.getItem("servidorVideo") || "servidor-de-video.onrender.com";
     }
@@ -190,53 +227,68 @@
     showLoading(true);
     try {
       const res = await fetchConToken(`https://${servidorActual}/video?nombre=${encodeURIComponent(peli.titulo)}`);
-      if (!res.ok) throw new Error(`Error: ${res.status}`);
+      if (!res.ok) {
+        if (res.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("expiresAt");
+          window.location.href = "login.html?unauthorized=1";
+        }
+        throw new Error(`Error ${res.status}: ${await res.text()}`);
+      }
       
-      // La respuesta es una redirección, obtener la URL
-      video.src = res.url;
+      video.src = `https://${servidorActual}/video?nombre=${encodeURIComponent(peli.titulo)}`;
       video.load();
       playAfterSeek = true;
     } catch (error) {
       console.error('Error cargando video:', error);
-      document.getElementById('tituloPeli').textContent = 'Error al cargar el video';
+      document.getElementById('tituloPeli').textContent = `Error: ${error.message}`;
       showLoading(false);
     }
   }
 
+  // Inicializar funcionalidad del video
   function iniciarVideo() {
     servidorActual = localStorage.getItem("servidorVideo") || "servidor-de-video.onrender.com";
 
+    // Evento cuando se cargan los metadatos del video
     video.addEventListener("loadedmetadata", () => {
-      if (tiempoGuardado < video.duration) {
+      if (tiempoGuardado > 0 && tiempoGuardado < video.duration) {
         video.currentTime = tiempoGuardado;
       }
       playAfterSeek = true;
       showLoading(false);
     });
 
+    // Evento cuando el video puede reproducirse
     video.addEventListener("canplay", () => {
       if (playAfterSeek) {
-        video.play().catch(() => console.log("Autoplay bloqueado"));
+        video.play().catch(() => console.log("Autoplay bloqueado por el navegador"));
         playAfterSeek = false;
       }
     });
 
+    // Eventos de loading
     video.addEventListener("waiting", () => showLoading(true));
     video.addEventListener("playing", () => showLoading(false));
 
+    // Guardar progreso cada 2 segundos
     setInterval(() => {
-      if (!video.paused && peliActual) {
+      if (!video.paused && peliActual && video.currentTime) {
         localStorage.setItem("tiempoVideo_" + peliActual.titulo, video.currentTime);
       }
     }, 2000);
   }
 
+  // Función de logout
   function logout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("expiresAt");
-    window.location.href = "login.html";
+    if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("expiresAt");
+      window.location.href = "login.html";
+    }
   }
 
+  // Inicializar cuando se carga la página
   window.onload = () => {
     iniciarVideo();
     cargarPeliculas();
