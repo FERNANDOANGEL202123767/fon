@@ -33,7 +33,13 @@
         <label class="text-sm">Contraseña</label>
         <input type="password" id="loginPassword" required class="w-full bg-gray-700 px-4 py-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-blue-500">
       </div>
-      <button class="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded-lg font-semibold transition">Ingresar</button>
+      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded-lg font-semibold transition">
+        <span id="loginBtnText">Ingresar</span>
+        <svg id="loginLoader" class="animate-spin h-5 w-5 text-white mx-auto hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+        </svg>
+      </button>
       <p id="loginError" class="text-red-500 text-center text-sm hidden">Usuario o contraseña incorrectos</p>
     </form>
 
@@ -47,7 +53,13 @@
         <label class="text-sm">Contraseña</label>
         <input type="password" id="registerPassword" required class="w-full bg-gray-700 px-4 py-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-blue-500">
       </div>
-      <button class="w-full bg-green-600 hover:bg-green-700 py-2 rounded-lg font-semibold transition">Crear cuenta</button>
+      <button type="submit" class="w-full bg-green-600 hover:bg-green-700 py-2 rounded-lg font-semibold transition">
+        <span id="registerBtnText">Crear cuenta</span>
+        <svg id="registerLoader" class="animate-spin h-5 w-5 text-white mx-auto hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+        </svg>
+      </button>
       <p id="registerMsg" class="text-center text-sm hidden"></p>
     </form>
   </div>
@@ -59,28 +71,57 @@
       const btnLogin = document.getElementById("btnLogin");
       const btnRegister = document.getElementById("btnRegister");
 
+      // Ocultar mensajes de error
+      document.getElementById("loginError").classList.add("hidden");
+      document.getElementById("registerMsg").classList.add("hidden");
+
       if (type === "login") {
         login.classList.remove("hidden");
         register.classList.add("hidden");
         btnLogin.classList.add("text-white", "border-b-2", "border-blue-600");
-        btnRegister.classList.remove("text-white");
+        btnLogin.classList.remove("text-gray-400");
+        btnRegister.classList.remove("text-white", "border-b-2", "border-blue-600");
         btnRegister.classList.add("text-gray-400");
       } else {
         register.classList.remove("hidden");
         login.classList.add("hidden");
         btnRegister.classList.add("text-white", "border-b-2", "border-blue-600");
-        btnLogin.classList.remove("text-white");
+        btnRegister.classList.remove("text-gray-400");
+        btnLogin.classList.remove("text-white", "border-b-2", "border-blue-600");
         btnLogin.classList.add("text-gray-400");
       }
     }
 
+    // Función para mostrar/ocultar loader
+    function toggleLoader(formType, show) {
+      const btnText = document.getElementById(`${formType}BtnText`);
+      const loader = document.getElementById(`${formType}Loader`);
+      const button = document.querySelector(`#${formType}Form button[type="submit"]`);
+      
+      if (show) {
+        btnText.classList.add("hidden");
+        loader.classList.remove("hidden");
+        button.disabled = true;
+        button.classList.add("opacity-75");
+      } else {
+        btnText.classList.remove("hidden");
+        loader.classList.add("hidden");
+        button.disabled = false;
+        button.classList.remove("opacity-75");
+      }
+    }
+
+    // LOGIN FORM HANDLER - ACTUALIZADO CON 30 DÍAS
     document.getElementById("loginForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const username = document.getElementById("loginUsername").value;
       const password = document.getElementById("loginPassword").value;
+      
+      // Ocultar errores previos
+      document.getElementById("loginError").classList.add("hidden");
+      toggleLoader("login", true);
 
       try {
-        // URL actualizada para producción
         const res = await fetch("https://login-1c32.onrender.com/api/auth/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -90,26 +131,36 @@
         if (res.ok) {
           const data = await res.json();
           localStorage.setItem("token", data.token);
-          const expirationMinutes = 30;
-          const expiresAt = new Date().getTime() + expirationMinutes * 60 * 1000;
+          
+          // CAMBIO PRINCIPAL: Token válido por 30 DÍAS en lugar de 30 minutos
+          const expirationDays = 30;
+          const expiresAt = new Date().getTime() + expirationDays * 24 * 60 * 60 * 1000;
           localStorage.setItem("expiresAt", expiresAt);
+          
+          // Redireccionar al dashboard
           window.location.href = "dashboard.html";
         } else {
           document.getElementById("loginError").classList.remove("hidden");
+          toggleLoader("login", false);
         }
       } catch (err) {
-        console.error(err);
+        console.error("Error en login:", err);
         document.getElementById("loginError").classList.remove("hidden");
+        toggleLoader("login", false);
       }
     });
 
+    // REGISTER FORM HANDLER
     document.getElementById("registerForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const username = document.getElementById("registerUsername").value;
       const password = document.getElementById("registerPassword").value;
+      
+      // Ocultar mensajes previos
+      document.getElementById("registerMsg").classList.add("hidden");
+      toggleLoader("register", true);
 
       try {
-        // URL actualizada para producción
         const res = await fetch("https://login-1c32.onrender.com/api/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -117,28 +168,42 @@
         });
 
         const msg = document.getElementById("registerMsg");
+        
         if (res.ok) {
           msg.textContent = "✅ Cuenta creada con éxito. Ahora inicia sesión.";
           msg.className = "text-green-500 text-center text-sm";
+          
+          // Limpiar formulario
+          document.getElementById("registerUsername").value = "";
+          document.getElementById("registerPassword").value = "";
+          
+          // Cambiar a formulario de login después de 2 segundos
+          setTimeout(() => {
+            showForm("login");
+          }, 2000);
         } else {
           const errData = await res.json();
           msg.textContent = "❌ Error: " + (errData?.message || "Usuario ya registrado");
           msg.className = "text-red-500 text-center text-sm";
         }
+        
         msg.classList.remove("hidden");
+        toggleLoader("register", false);
       } catch (err) {
-        console.error(err);
+        console.error("Error en registro:", err);
         const msg = document.getElementById("registerMsg");
         msg.textContent = "❌ Error en la conexión con el servidor";
         msg.className = "text-red-500 text-center text-sm";
         msg.classList.remove("hidden");
+        toggleLoader("register", false);
       }
     });
 
-    // Verificar si ya hay una sesión activa
+    // Verificar si ya hay una sesión activa al cargar la página
     const token = localStorage.getItem("token");
     const expiresAt = localStorage.getItem("expiresAt");
     if (token && expiresAt && new Date().getTime() < parseInt(expiresAt)) {
+      console.log("Sesión activa encontrada, redirigiendo...");
       window.location.href = "dashboard.html";
     }
 
@@ -146,10 +211,16 @@
     const params = new URLSearchParams(window.location.search);
     if (params.get("unauthorized") === "1") {
       const msg = document.createElement("p");
-      msg.className = "text-red-500 text-center text-sm mb-2";
-      msg.textContent = "Debes iniciar sesión para continuar.";
+      msg.className = "text-red-500 text-center text-sm mb-4 bg-red-900/20 border border-red-500/50 rounded-lg p-3";
+      msg.innerHTML = "⚠️ Tu sesión ha expirado. Por favor, inicia sesión nuevamente.";
       const form = document.getElementById("loginForm");
       form.parentNode.insertBefore(msg, form);
+    }
+
+    // Limpiar URL después de mostrar el mensaje
+    if (params.get("unauthorized")) {
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
     }
   </script>
 </body>
