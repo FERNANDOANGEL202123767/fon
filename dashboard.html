@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MovieStream</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap');
+    body { font-family: 'Poppins', sans-serif; }
+    .active-server {
+      background-color: #2563eb !important;
+      color: white !important;
+    }
+  </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col">
+
+<!-- Validación de sesión -->
+<script>
+(function validarSesion() {
+  const token = localStorage.getItem("token");
+  const expiresAt = localStorage.getItem("expiresAt");
+
+  if (!token || !expiresAt || new Date().getTime() > parseInt(expiresAt)) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("expiresAt");
+    window.location.href = "login.html?unauthorized=1";
+  }
+})();
+</script>
+
+<!-- HEADER -->
+<header class="flex items-center justify-between bg-gray-800 p-4 border-b border-gray-700">
+  <div class="flex items-center space-x-2 text-xl font-bold text-white">
+    <svg class="w-6 h-6 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/></svg>
+    <span>MovieStream</span>
+  </div>
+  <button onclick="logout()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg transition">Logout</button>
+</header>
+
+<!-- MAIN -->
+<main class="flex-grow max-w-7xl mx-auto flex flex-col md:flex-row gap-8 px-6 py-8">
+
+  <section class="flex-1 flex flex-col space-y-6">
+    <!-- VIDEO -->
+    <div class="relative rounded-lg overflow-hidden bg-black border border-gray-700 shadow-lg">
+      <video id="videoPlayer" class="w-full rounded-lg" controls preload="metadata" playsinline></video>
+      <div id="loadingOverlay" class="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+        <svg class="animate-spin h-16 w-16 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+        </svg>
+      </div>
+    </div>
+
+    <!-- SERVIDORES -->
+    <div class="flex items-center space-x-2">
+      <span class="text-gray-300 font-medium">Servers:</span>
+      <button id="server1" class="bg-blue-600 text-white px-3 py-1 rounded-md font-semibold active-server" onclick="cambiarServidorBoton('192.168.96.1:8080/api/v1/server1', this)">Server 1</button>
+      <button id="server2" class="bg-gray-700 text-white px-3 py-1 rounded-md hover:bg-blue-500" onclick="cambiarServidorBoton('192.168.96.1:8080/api/v1/server2', this)">Server 2</button>
+      <button id="server3" class="bg-gray-700 text-white px-3 py-1 rounded-md hover:bg-blue-500" onclick="cambiarServidorBoton('192.168.96.1:8080/api/v1/server3', this)">Server 3</button>
+    </div>
+
+    <!-- INFO -->
+    <div class="space-y-2 max-w-xl">
+      <h2 id="tituloPeli" class="text-4xl font-extrabold tracking-wide"></h2>
+      <p id="descripcionPeli" class="text-gray-300 text-lg leading-relaxed"></p>
+      <p id="duracionPeli" class="italic text-blue-300 font-semibold"></p>
+    </div>
+  </section>
+
+  <aside class="md:w-80 flex flex-col space-y-4 overflow-y-auto pr-2" style="max-height: calc(100vh - 150px);" id="pelisList"></aside>
+
+</main>
+
+<!-- JS -->
+<script>
+  // Helper para fetch con token y manejo automático de expiración
+  function fetchConToken(url, options = {}) {
+    const token = localStorage.getItem("token");
+    return fetch(url, {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+        "Authorization": "Bearer " + token,
+      },
+    }).then(async (res) => {
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("expiresAt");
+        window.location.href = "login.html?unauthorized=1";
+        throw new Error("Token inválido");
+      }
+      return res;
+    });
+  }
+
+  const video = document.getElementById('videoPlayer');
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  const pelisList = document.getElementById('pelisList');
+  let servidorActual = null;
+  let peliActual = null;
+  let tiempoGuardado = 0;
+  let playAfterSeek = false;
+
+  function showLoading(show) {
+    loadingOverlay.style.opacity = show ? '1' : '0';
+    loadingOverlay.style.pointerEvents = show ? 'auto' : 'none';
+    video.classList.toggle('loading', show);
+  }
+
+  async function cargarPeliculas() {
+    showLoading(true);
+    try {
+      // Cambia esta URL por la URL de tu backend en producción
+      const res = await fetchConToken('http://localhost:3000/pelis/listar');
+      const pelis = await res.json();
+
+      pelisList.innerHTML = '';
+
+      pelis.forEach(peli => {
+        const card = document.createElement('div');
+        card.className = "bg-gray-800 rounded-lg overflow-hidden shadow hover:ring-2 hover:ring-blue-500 cursor-pointer transition";
+        
+        // Usar 'miniatura' en lugar de 'image'
+        const imgSrc = peli.miniatura || 'https://via.placeholder.com/224x126.png?text=Sin+Imagen';
+
+        card.innerHTML = `
+          <img src="${imgSrc}" alt="${peli.titulo}" class="w-full h-40 object-cover">
+          <div class="p-3 space-y-1">
+            <h3 class="text-white font-semibold text-lg">${peli.titulo}</h3>
+            <div class="flex flex-wrap gap-1 text-xs text-gray-300">
+              <span class="bg-gray-700 px-2 py-0.5 rounded">${peli.anio || '2023'}</span>
+              ${(peli.generos || ['Género']).map(gen => `<span class="bg-gray-700 px-2 py-0.5 rounded">${gen}</span>`).join('')}
+            </div>
+          </div>
+        `;
+        card.onclick = () => cargarVideo(peli);
+        pelisList.appendChild(card);
+      });
+
+      const peliGuardada = localStorage.getItem('nombrePeli');
+      const peliParaCargar = pelis.find(p => p.titulo === peliGuardada) || pelis[0];
+      cargarVideo(peliParaCargar);
+    } catch (error) {
+      pelisList.innerHTML = `<p class="text-red-500 text-center p-6">Error cargando películas :(</p>`;
+      console.error(error);
+    } finally {
+      showLoading(false);
+    }
+  }
+
+  function cambiarServidorBoton(ip, boton) {
+    servidorActual = ip;
+    localStorage.setItem("servidorVideo", ip);
+
+    if (peliActual) {
+      localStorage.setItem("tiempoVideo_" + peliActual.titulo, video.currentTime);
+    }
+
+    tiempoGuardado = video.currentTime;
+    playAfterSeek = true;
+
+    if (peliActual) {
+      cargarVideo(peliActual);
+    }
+
+    document.querySelectorAll('[id^="server"]').forEach(btn => {
+      btn.classList.remove('active-server', 'bg-blue-600');
+      btn.classList.add('bg-gray-700');
+    });
+    boton.classList.add('active-server', 'bg-blue-600');
+    boton.classList.remove('bg-gray-700');
+  }
+
+  function cargarVideo(peli) {
+    peliActual = peli;
+    document.getElementById('tituloPeli').textContent = peli.titulo;
+    document.getElementById('descripcionPeli').textContent = peli.descripcion;
+    document.getElementById('duracionPeli').textContent = `Duración: ${peli.duracion}`;
+    localStorage.setItem('nombrePeli', peli.titulo);
+
+    tiempoGuardado = parseFloat(localStorage.getItem("tiempoVideo_" + peli.titulo)) || 0;
+
+    if (!servidorActual) {
+      servidorActual = localStorage.getItem("servidorVideo") || "192.168.96.77:9090";
+    }
+
+    showLoading(true);
+    video.src = `http://${servidorActual}/video?nombre=${encodeURIComponent(peli.titulo)}`;
+    video.load();
+    playAfterSeek = true;
+  }
+
+  function iniciarVideo() {
+    servidorActual = localStorage.getItem("servidorVideo") || "localhost:8080/api/v1/server1";
+
+    video.addEventListener("loadedmetadata", () => {
+      if (tiempoGuardado < video.duration) {
+        video.currentTime = tiempoGuardado;
+      }
+      playAfterSeek = true;
+      showLoading(false);
+    });
+
+    video.addEventListener("canplay", () => {
+      if (playAfterSeek) {
+        video.play().catch(() => console.log("Autoplay bloqueado"));
+        playAfterSeek = false;
+      }
+    });
+
+    video.addEventListener("waiting", () => showLoading(true));
+    video.addEventListener("playing", () => showLoading(false));
+
+    setInterval(() => {
+      if (!video.paused && peliActual) {
+        localStorage.setItem("tiempoVideo_" + peliActual.titulo, video.currentTime);
+      }
+    }, 2000);
+  }
+
+  function logout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("expiresAt");
+    window.location.href = "login.html";
+  }
+
+  window.onload = () => {
+    iniciarVideo();
+    cargarPeliculas();
+  };
+</script>
+
+</body>
+</html>
