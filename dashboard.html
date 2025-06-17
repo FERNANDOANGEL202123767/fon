@@ -57,9 +57,9 @@
     <!-- SERVIDORES -->
     <div class="flex items-center space-x-2">
       <span class="text-gray-300 font-medium">Servers:</span>
-      <button id="server1" class="bg-blue-600 text-white px-3 py-1 rounded-md font-semibold active-server" onclick="cambiarServidorBoton('192.168.96.1:8080/api/v1/server1', this)">Server 1</button>
-      <button id="server2" class="bg-gray-700 text-white px-3 py-1 rounded-md hover:bg-blue-500" onclick="cambiarServidorBoton('192.168.96.1:8080/api/v1/server2', this)">Server 2</button>
-      <button id="server3" class="bg-gray-700 text-white px-3 py-1 rounded-md hover:bg-blue-500" onclick="cambiarServidorBoton('192.168.96.1:8080/api/v1/server3', this)">Server 3</button>
+      <button id="server1" class="bg-blue-600 text-white px-3 py-1 rounded-md font-semibold active-server" onclick="cambiarServidorBoton('servidor-de-video.onrender.com', this)">Server 1</button>
+      <button id="server2" class="bg-gray-700 text-white px-3 py-1 rounded-md hover:bg-blue-500" onclick="cambiarServidorBoton('servidor-de-video.onrender.com', this)">Server 2</button>
+      <button id="server3" class="bg-gray-700 text-white px-3 py-1 rounded-md hover:bg-blue-500" onclick="cambiarServidorBoton('servidor-de-video.onrender.com', this)">Server 3</button>
     </div>
 
     <!-- INFO -->
@@ -113,8 +113,8 @@
   async function cargarPeliculas() {
     showLoading(true);
     try {
-      // Cambia esta URL por la URL de tu backend en producción
-      const res = await fetchConToken('http://localhost:3000/pelis/listar');
+      // URL actualizada para producción
+      const res = await fetchConToken('https://nefly-bd-pelis.onrender.com/pelis/listar');
       const pelis = await res.json();
 
       pelisList.innerHTML = '';
@@ -184,17 +184,17 @@
     tiempoGuardado = parseFloat(localStorage.getItem("tiempoVideo_" + peli.titulo)) || 0;
 
     if (!servidorActual) {
-      servidorActual = localStorage.getItem("servidorVideo") || "192.168.96.77:9090";
+      servidorActual = localStorage.getItem("servidorVideo") || "servidor-de-video.onrender.com";
     }
 
     showLoading(true);
-    video.src = `http://${servidorActual}/video?nombre=${encodeURIComponent(peli.titulo)}`;
+    video.src = `https://${servidorActual}/video?nombre=${encodeURIComponent(peli.titulo)}`;
     video.load();
     playAfterSeek = true;
   }
 
   function iniciarVideo() {
-    servidorActual = localStorage.getItem("servidorVideo") || "localhost:8080/api/v1/server1";
+    servidorActual = localStorage.getItem("servidorVideo") || "servidor-de-video.onrender.com";
 
     video.addEventListener("loadedmetadata", () => {
       if (tiempoGuardado < video.duration) {
