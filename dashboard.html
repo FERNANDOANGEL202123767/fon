@@ -174,7 +174,7 @@
     boton.classList.remove('bg-gray-700');
   }
 
-  function cargarVideo(peli) {
+  async function cargarVideo(peli) {
     peliActual = peli;
     document.getElementById('tituloPeli').textContent = peli.titulo;
     document.getElementById('descripcionPeli').textContent = peli.descripcion;
@@ -188,9 +188,19 @@
     }
 
     showLoading(true);
-    video.src = `https://${servidorActual}/video?nombre=${encodeURIComponent(peli.titulo)}`;
-    video.load();
-    playAfterSeek = true;
+    try {
+      const res = await fetchConToken(`https://${servidorActual}/video?nombre=${encodeURIComponent(peli.titulo)}`);
+      if (!res.ok) throw new Error(`Error: ${res.status}`);
+      
+      // La respuesta es una redirección, obtener la URL
+      video.src = res.url;
+      video.load();
+      playAfterSeek = true;
+    } catch (error) {
+      console.error('Error cargando video:', error);
+      document.getElementById('tituloPeli').textContent = 'Error al cargar el video';
+      showLoading(false);
+    }
   }
 
   function iniciarVideo() {
