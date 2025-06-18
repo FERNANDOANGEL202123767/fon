@@ -63,15 +63,9 @@
 
     <!-- SERVIDORES -->
     <div class="flex items-center space-x-2">
-      <span class="text-gray-300 font-medium">Servers:</span>
+      <span class="text-gray-300 font-medium">Server:</span>
       <button id="server1" class="bg-blue-600 text-white px-3 py-1 rounded-md font-semibold active-server" onclick="cambiarServidorBoton('servidor-de-video.onrender.com', this)">
         Server 1
-      </button>
-      <button id="server2" class="bg-gray-700 text-white px-3 py-1 rounded-md hover:bg-blue-500" onclick="cambiarServidorBoton('render2', this)">
-        Server 2
-      </button>
-      <button id="server3" class="bg-gray-700 text-white px-3 py-1 rounded-md hover:bg-blue-500" onclick="cambiarServidorBoton('render3', this)">
-        Server 3
       </button>
     </div>
 
@@ -105,6 +99,11 @@
   // Helper para fetch con token y manejo automático de expiración
   function fetchConToken(url, options = {}) {
     const token = localStorage.getItem("token");
+    if (!token) {
+      localStorage.removeItem("expiresAt");
+      window.location.href = "login.html?unauthorized=1";
+      throw new Error("No hay token disponible");
+    }
     return fetch(url, {
       ...options,
       headers: {
@@ -143,6 +142,9 @@
     showLoading(true);
     try {
       const res = await fetchConToken('https://nefly-bd-pelis.onrender.com/pelis/listar');
+      if (!res.ok) {
+        throw new Error(`Error ${res.status}: ${await res.text()}`);
+      }
       const pelis = await res.json();
 
       pelisList.innerHTML = '';
@@ -208,7 +210,7 @@
     boton.classList.remove('bg-gray-700');
   }
 
-  // Cargar video con blob (IMPLEMENTACIÓN ACTUALIZADA)
+  // Cargar video
   async function cargarVideo(peli) {
     peliActual = peli;
     document.getElementById('tituloPeli').textContent = peli.titulo;
@@ -226,9 +228,9 @@
 
     showLoading(true);
     try {
-      const res = await fetchConToken(`https://${servidorActual}/video?nombre=${encodeURIComponent(peli.titulo)}`, {
-        method: 'GET',
-      });
+      const videoUrl = `https://${servidorActual}/video?nombre=${encodeURIComponent(peli.titulo)}`;
+      // Verificar que la URL sea accesible
+      const res = await fetchConToken(videoUrl, { method: 'HEAD' });
       if (!res.ok) {
         if (res.status === 401) {
           localStorage.removeItem("token");
@@ -238,8 +240,6 @@
         throw new Error(`Error ${res.status}: ${await res.text()}`);
       }
 
-      const blob = await res.blob();
-      const videoUrl = URL.createObjectURL(blob);
       video.src = videoUrl;
       video.load();
       playAfterSeek = true;
