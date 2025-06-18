@@ -217,61 +217,49 @@
 
   // Cargar video con Blob
   async function cargarVideo(peli) {
-  peliActual = peli;
-  document.getElementById('tituloPeli').textContent = peli.titulo;
-  document.getElementById('descripcionPeli').textContent = peli.descripcion || 'Sin descripción disponible';
-  document.getElementById('duracionPeli').textContent = `Duración: ${peli.duracion || 'No especificada'}`;
-  localStorage.setItem('nombrePeli', peli.titulo);
+    peliActual = peli;
+    document.getElementById('tituloPeli').textContent = peli.titulo;
+    document.getElementById('descripcionPeli').textContent = peli.descripcion || 'Sin descripción disponible';
+    document.getElementById('duracionPeli').textContent = `Duración: ${peli.duracion || 'No especificada'}`;
+    localStorage.setItem('nombrePeli', peli.titulo);
 
-  tiempoGuardado = parseFloat(localStorage.getItem("tiempoVideo_" + peli.titulo)) || 0;
+    // Obtener tiempo guardado
+    tiempoGuardado = parseFloat(localStorage.getItem("tiempoVideo_" + peli.titulo)) || 0;
 
-  if (!servidorActual) {
-    servidorActual = localStorage.getItem("servidorVideo") || "servidor-de-video.onrender.com";
-    servidorActual = servidorActual.replace(/^https?:\/\//, '');
-    localStorage.setItem("servidorVideo", servidorActual);
-    console.log('Servidor actual (default):', servidorActual);
-  }
-
-  showLoading(true);
-  try {
-    const videoUrl = `https://${servidorActual}/video?nombre=${encodeURIComponent(peli.titulo)}`;
-    console.log('Intentando cargar video desde:', videoUrl);
-    const res = await fetchConToken(videoUrl, { method: 'GET' });
-    if (!res.ok) {
-      const errorText = await res.text();
-      if (res.status === 401) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("expiresAt");
-        window.location.href = "login.html?unauthorized=1";
-      }
-      throw new Error(`Error ${res.status}: ${errorText}`);
+    // Usar servidor guardado o por defecto
+    if (!servidorActual) {
+      servidorActual = localStorage.getItem("servidorVideo") || "servidor-de-video.onrender.com";
+      servidorActual = servidorActual.replace(/^https?:\/\//, ''); // Eliminar protocolo
+      localStorage.setItem("servidorVideo", servidorActual);
+      console.log('Servidor actual (default):', servidorActual); // Depuración
     }
 
-    // Usar MediaSource para streaming
-    const mediaSource = new MediaSource();
-    video.src = URL.createObjectURL(mediaSource);
-    mediaSource.addEventListener('sourceopen', async () => {
-      const sourceBuffer = mediaSource.addSourceBuffer('video/mp4');
-      const reader = res.body.getReader();
-      let done = false;
-      while (!done) {
-        const { value, done: readerDone } = await reader.read();
-        done = readerDone;
-        if (value) {
-          sourceBuffer.appendBuffer(value);
+    showLoading(true);
+    try {
+      const videoUrl = `https://${servidorActual}/video?nombre=${encodeURIComponent(peli.titulo)}`;
+      console.log('Intentando cargar video desde:', videoUrl); // Depuración
+      const res = await fetchConToken(videoUrl, { method: 'GET' });
+      if (!res.ok) {
+        const errorText = await res.text();
+        if (res.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("expiresAt");
+          window.location.href = "login.html?unauthorized=1";
         }
+        throw new Error(`Error ${res.status}: ${errorText}`);
       }
-      mediaSource.endOfStream();
-    });
 
-    video.load();
-    playAfterSeek = true;
-  } catch (error) {
-    console.error('Error cargando video:', error);
-    document.getElementById('tituloPeli').textContent = `Error: ${error.message}`;
-    showLoading(false);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      video.src = blobUrl;
+      video.load();
+      playAfterSeek = true;
+    } catch (error) {
+      console.error('Error cargando video:', error);
+      document.getElementById('tituloPeli').textContent = `Error: ${error.message}`;
+      showLoading(false);
+    }
   }
-}
 
   // Inicializar funcionalidad del video
   function iniciarVideo() {
