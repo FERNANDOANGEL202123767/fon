@@ -185,8 +185,9 @@
 
   // Cambiar servidor
   function cambiarServidorBoton(ip, boton) {
-    servidorActual = ip;
-    localStorage.setItem("servidorVideo", ip);
+    servidorActual = ip.replace(/^https?:\/\//, ''); // Eliminar protocolo si está presente
+    localStorage.setItem("servidorVideo", servidorActual);
+    console.log('Servidor actual:', servidorActual); // Depuración
 
     // Guardar tiempo actual del video
     if (peliActual) {
@@ -210,7 +211,7 @@
     boton.classList.remove('bg-gray-700');
   }
 
-  // Cargar video
+  // Cargar video con Blob
   async function cargarVideo(peli) {
     peliActual = peli;
     document.getElementById('tituloPeli').textContent = peli.titulo;
@@ -224,23 +225,29 @@
     // Usar servidor guardado o por defecto
     if (!servidorActual) {
       servidorActual = localStorage.getItem("servidorVideo") || "servidor-de-video.onrender.com";
+      servidorActual = servidorActual.replace(/^https?:\/\//, ''); // Eliminar protocolo
+      localStorage.setItem("servidorVideo", servidorActual);
+      console.log('Servidor actual (default):', servidorActual); // Depuración
     }
 
     showLoading(true);
     try {
       const videoUrl = `https://${servidorActual}/video?nombre=${encodeURIComponent(peli.titulo)}`;
-      // Verificar que la URL sea accesible
-      const res = await fetchConToken(videoUrl, { method: 'HEAD' });
+      console.log('Intentando cargar video desde:', videoUrl); // Depuración
+      const res = await fetchConToken(videoUrl, { method: 'GET' });
       if (!res.ok) {
+        const errorText = await res.text();
         if (res.status === 401) {
           localStorage.removeItem("token");
           localStorage.removeItem("expiresAt");
           window.location.href = "login.html?unauthorized=1";
         }
-        throw new Error(`Error ${res.status}: ${await res.text()}`);
+        throw new Error(`Error ${res.status}: ${errorText}`);
       }
 
-      video.src = videoUrl;
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      video.src = blobUrl;
       video.load();
       playAfterSeek = true;
     } catch (error) {
@@ -253,6 +260,9 @@
   // Inicializar funcionalidad del video
   function iniciarVideo() {
     servidorActual = localStorage.getItem("servidorVideo") || "servidor-de-video.onrender.com";
+    servidorActual = servidorActual.replace(/^https?:\/\//, ''); // Eliminar protocolo
+    localStorage.setItem("servidorVideo", servidorActual);
+    console.log('Servidor actual (inicial):', servidorActual); // Depuración
 
     // Evento cuando se cargan los metadatos del video
     video.addEventListener("loadedmetadata", () => {
