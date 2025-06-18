@@ -187,11 +187,11 @@
     localStorage.setItem("servidorVideo", ip);
 
     // Guardar tiempo actual del video
-    if (peliActual && video.currentTime) {
+    if (peliActual) {
       localStorage.setItem("tiempoVideo_" + peliActual.titulo, video.currentTime);
     }
 
-    tiempoGuardado = video.currentTime || 0;
+    tiempoGuardado = video.currentTime;
     playAfterSeek = true;
 
     // Recargar el video con el nuevo servidor
@@ -208,7 +208,7 @@
     boton.classList.remove('bg-gray-700');
   }
 
-  // Cargar video
+  // Cargar video con blob (IMPLEMENTACIÓN ACTUALIZADA)
   async function cargarVideo(peli) {
     peliActual = peli;
     document.getElementById('tituloPeli').textContent = peli.titulo;
@@ -226,7 +226,9 @@
 
     showLoading(true);
     try {
-      const res = await fetchConToken(`https://${servidorActual}/video?nombre=${encodeURIComponent(peli.titulo)}`);
+      const res = await fetchConToken(`https://${servidorActual}/video?nombre=${encodeURIComponent(peli.titulo)}`, {
+        method: 'GET',
+      });
       if (!res.ok) {
         if (res.status === 401) {
           localStorage.removeItem("token");
@@ -235,8 +237,10 @@
         }
         throw new Error(`Error ${res.status}: ${await res.text()}`);
       }
-      
-      video.src = `https://${servidorActual}/video?nombre=${encodeURIComponent(peli.titulo)}`;
+
+      const blob = await res.blob();
+      const videoUrl = URL.createObjectURL(blob);
+      video.src = videoUrl;
       video.load();
       playAfterSeek = true;
     } catch (error) {
@@ -252,7 +256,7 @@
 
     // Evento cuando se cargan los metadatos del video
     video.addEventListener("loadedmetadata", () => {
-      if (tiempoGuardado > 0 && tiempoGuardado < video.duration) {
+      if (tiempoGuardado < video.duration) {
         video.currentTime = tiempoGuardado;
       }
       playAfterSeek = true;
@@ -262,7 +266,7 @@
     // Evento cuando el video puede reproducirse
     video.addEventListener("canplay", () => {
       if (playAfterSeek) {
-        video.play().catch(() => console.log("Autoplay bloqueado por el navegador"));
+        video.play().catch(() => console.log("Autoplay bloqueado"));
         playAfterSeek = false;
       }
     });
@@ -273,7 +277,7 @@
 
     // Guardar progreso cada 2 segundos
     setInterval(() => {
-      if (!video.paused && peliActual && video.currentTime) {
+      if (!video.paused && peliActual) {
         localStorage.setItem("tiempoVideo_" + peliActual.titulo, video.currentTime);
       }
     }, 2000);
@@ -281,11 +285,9 @@
 
   // Función de logout
   function logout() {
-    if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("expiresAt");
-      window.location.href = "login.html";
-    }
+    localStorage.removeItem("token");
+    localStorage.removeItem("expiresAt");
+    window.location.href = "login.html";
   }
 
   // Inicializar cuando se carga la página
