@@ -63,9 +63,12 @@
 
     <!-- SERVIDORES -->
     <div class="flex items-center space-x-2">
-      <span class="text-gray-300 font-medium">Server:</span>
+      <span class="text-gray-300 font-medium">Servers:</span>
       <button id="server1" class="bg-blue-600 text-white px-3 py-1 rounded-md font-semibold active-server" onclick="cambiarServidorBoton('servidor-de-video.onrender.com', this)">
         Server 1
+      </button>
+      <button id="server2" class="bg-gray-700 text-white px-3 py-1 rounded-md hover:bg-blue-500" onclick="cambiarServidorBoton('ervidor-de-video-2.onrender.com', this)">
+        Server 2
       </button>
     </div>
 
@@ -190,11 +193,12 @@
     console.log('Servidor actual:', servidorActual); // Depuración
 
     // Guardar tiempo actual del video
-    if (peliActual) {
-      localStorage.setItem("tiempoVideo_" + peliActual.titulo, video.currentTime);
+    if (peliActual && !video.paused) {
+      tiempoGuardado = video.currentTime;
+      localStorage.setItem("tiempoVideo_" + peliActual.titulo, tiempoGuardado);
+      console.log('Tiempo guardado al cambiar servidor:', tiempoGuardado); // Depuración
     }
 
-    tiempoGuardado = video.currentTime;
     playAfterSeek = true;
 
     // Recargar el video con el nuevo servidor
@@ -266,8 +270,9 @@
 
     // Evento cuando se cargan los metadatos del video
     video.addEventListener("loadedmetadata", () => {
-      if (tiempoGuardado < video.duration) {
+      if (tiempoGuardado > 0 && tiempoGuardado < video.duration) {
         video.currentTime = tiempoGuardado;
+        console.log('Tiempo restaurado:', video.currentTime); // Depuración
       }
       playAfterSeek = true;
       showLoading(false);
