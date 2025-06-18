@@ -122,7 +122,7 @@
       toggleLoader("login", true);
 
       try {
-        const res = await fetch("https://login-1c32.onrender.com/api/auth/login", {
+        const res = await fetch("https://api-gateway-movies.onrender.com/api1/auth/api/auth/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username, password }),
@@ -161,7 +161,7 @@
       toggleLoader("register", true);
 
       try {
-        const res = await fetch("https://login-1c32.onrender.com/api/auth/register", {
+        const res = await fetch("https://api-gateway-movies.onrender.com/api1/auth/api/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username, password }),
