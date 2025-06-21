@@ -143,8 +143,8 @@
   // Cargar lista de películas
   async function cargarPeliculas() {
     showLoading(true);
-    try {
-      const res = await fetchConToken('hhttps://nefly-bd-pelis.onrender.com/pelis/listar');
+    try {https:
+      const res = await fetchConToken('https://nefly-bd-pelis.onrender.com/pelis/listar');
       if (!res.ok) {
         throw new Error(`Error ${res.status}: ${await res.text()}`);
       }
