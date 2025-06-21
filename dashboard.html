@@ -144,7 +144,7 @@
   async function cargarPeliculas() {
     showLoading(true);
     try {
-      const res = await fetchConToken('hhttps://nefly-bd-pelis.onrender.com/pelis/listar');
+      const res = await fetchConToken('hhttps://nefly-bd-pelis.onrender.com/api/pelis/listar');
       if (!res.ok) {
         throw new Error(`Error ${res.status}: ${await res.text()}`);
       }
